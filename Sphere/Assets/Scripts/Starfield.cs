@@ -1,48 +1,65 @@
 using UnityEngine;
 
 /// <summary>
-/// Genera un campo de estrellas simple: muchos puntos blancos pequenos repartidos
-/// en un plano lejano detras del planeta, para dar el fondo espacial estilo Machinarium.
-/// Se generan una sola vez al iniciar (Start).
+/// Genera un campo de estrellas como fondo espacial, ADAPTANDOSE a la camara principal
+/// (funciona con camara ortografica o en perspectiva).
+///
+/// Las estrellas se crean como hijas de la camara, a una distancia dentro del Far Clip
+/// Plane, y repartidas para cubrir todo el encuadre. Asi nunca quedan recortadas ni fuera
+/// de cuadro aunque muevas o cambies la camara. Se generan al iniciar Play.
 /// </summary>
 public class Starfield : MonoBehaviour
 {
     [Tooltip("Cantidad de estrellas.")]
     public int starCount = 200;
 
-    [Tooltip("Ancho/alto de la zona donde se reparten (unidades de mundo).")]
-    public float areaWidth = 70f;
-    public float areaHeight = 45f;
+    [Tooltip("Margen extra fuera del borde de la pantalla (1 = justo al borde).")]
+    public float coverage = 1.15f;
 
-    [Tooltip("Profundidad (Z) donde viven las estrellas, detras del planeta.")]
-    public float minDepth = 25f;
-    public float maxDepth = 55f;
+    [Tooltip("Tamano de cada estrella (unidades de mundo en ortografica).")]
+    public float minSize = 0.03f;
+    public float maxSize = 0.09f;
 
-    [Tooltip("Tamano de cada estrella.")]
-    public float minSize = 0.06f;
-    public float maxSize = 0.22f;
+    [Tooltip("Distancia delante de la camara. 0 = automatico (dentro del Far Clip).")]
+    public float distance = 0f;
 
     void Start()
     {
+        Camera cam = Camera.main;
+        if (cam == null)
+        {
+            Debug.LogWarning("Starfield: no encontre Camera.main (la camara necesita el tag 'MainCamera').");
+            return;
+        }
+
+        // Distancia segura: dentro del far clip y delante del near clip.
+        float dist = distance > 0f
+            ? distance
+            : Mathf.Clamp(cam.farClipPlane * 0.6f, cam.nearClipPlane + 0.5f, cam.farClipPlane - 0.5f);
+
+        // Medio-alto y medio-ancho del encuadre a esa distancia.
+        float halfH = cam.orthographic
+            ? cam.orthographicSize
+            : Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad) * dist;
+        float halfW = halfH * cam.aspect;
+
         Material mat = MakeUnlitWhite();
 
         for (int i = 0; i < starCount; i++)
         {
             GameObject star = GameObject.CreatePrimitive(PrimitiveType.Quad);
             star.name = "Star";
-            star.transform.SetParent(transform, false);
+            star.transform.SetParent(cam.transform, false); // relativo a la camara
 
-            float x = Random.Range(-areaWidth, areaWidth);
-            float y = Random.Range(-areaHeight, areaHeight);
-            float z = Random.Range(minDepth, maxDepth);
-            star.transform.localPosition = new Vector3(x, y, z);
+            float x = Random.Range(-halfW, halfW) * coverage;
+            float y = Random.Range(-halfH, halfH) * coverage;
+            star.transform.localPosition = new Vector3(x, y, dist);
+            star.transform.localRotation = Quaternion.identity; // la cara del Quad mira a la camara
 
-            float s = Random.Range(minSize, maxSize);
+            // En perspectiva escalamos con la distancia para tamano aparente uniforme.
+            float sizeFactor = cam.orthographic ? 1f : dist;
+            float s = Random.Range(minSize, maxSize) * sizeFactor;
             star.transform.localScale = new Vector3(s, s, s);
-
-            // La cara frontal del Quad mira a -Z, justo hacia la camara (que esta en -Z
-            // mirando a +Z). Rotacion identidad = visible. No hay que girarlo.
-            star.transform.localRotation = Quaternion.identity;
 
             Collider col = star.GetComponent<Collider>();
             if (col != null) Destroy(col);

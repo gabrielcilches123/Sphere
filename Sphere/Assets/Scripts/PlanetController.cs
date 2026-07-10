@@ -2,15 +2,14 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// Controla la rotacion del planeta segun el input del jugador.
+/// Controla la rotacion del planeta y arbitra el input:
 ///
-/// - Click / toque en la MITAD IZQUIERDA de la pantalla  -> gira en sentido POSITIVO.
-/// - Click / toque en la MITAD DERECHA  de la pantalla    -> gira en sentido NEGATIVO.
+/// - Al presionar, si el click cae SOBRE una estrella (raycast) -> la recoge y ese
+///   gesto NO gira el planeta.
+/// - Si el click cae en VACIO -> gira mientras se mantiene: mitad izquierda = positivo,
+///   mitad derecha = negativo.
 ///
-/// Mantener presionado hace que el planeta gire de forma continua mientras se sostiene.
-/// Todo el escenario (hijos de este objeto) gira como un bloque; el personaje se queda arriba.
-///
-/// Usa el nuevo Input System (Pointer.current), valido para mouse, touch y web.
+/// Usa el nuevo Input System (Pointer.current): mouse, touch y web.
 /// </summary>
 public class PlanetController : MonoBehaviour
 {
@@ -20,17 +19,93 @@ public class PlanetController : MonoBehaviour
     [Tooltip("Eje de rotacion. Vista lateral 2D (rueda) = (0,0,1).")]
     public Vector3 axis = new Vector3(0f, 0f, 1f);
 
+    [Tooltip("Camara usada para el raycast de recoleccion. Vacio = Camera.main.")]
+    public Camera cam;
+
+    bool suppressRotation; // el gesto actual empezo sobre una estrella
+
+    /// <summary>True en los frames en que el planeta esta girando por input.</summary>
+    public bool IsRotating { get; private set; }
+
+    /// <summary>Signo del ultimo giro (+1 / -1). Util para orientar al personaje.</summary>
+    public float LastDir { get; private set; }
+
+    void Awake()
+    {
+        if (cam == null) cam = Camera.main;
+    }
+
     void Update()
     {
+        IsRotating = false; // por defecto no gira este frame
+
+        // Durante el fin de mision (fade) no se gira ni se recoge.
+        if (GameManager.Instance != null && GameManager.Instance.IsBusy) return;
+
         Pointer pointer = Pointer.current;
-        if (pointer == null || !pointer.press.isPressed) return;
-        if (axis == Vector3.zero) return;
+        if (pointer == null) return;
 
-        float x = pointer.position.ReadValue().x;
+        if (pointer.press.wasPressedThisFrame)
+            suppressRotation = IsPointerOverUI() || HandlePress(pointer.position.ReadValue());
 
-        // Izquierda = positivo, Derecha = negativo.
-        float dir = (x < Screen.width * 0.5f) ? 1f : -1f;
+        if (pointer.press.wasReleasedThisFrame)
+            suppressRotation = false;
 
-        transform.Rotate(axis.normalized, dir * degreesPerSecond * Time.deltaTime, Space.Self);
+        bool dialogueOpen = DialogueManager.Instance != null && DialogueManager.Instance.IsOpen;
+        if (pointer.press.isPressed && !suppressRotation && !dialogueOpen && axis != Vector3.zero)
+        {
+            float x = pointer.position.ReadValue().x;
+            float dir = (x < Screen.width * 0.5f) ? -1f : 1f; // invertido: izquierda -, derecha +
+            transform.Rotate(axis.normalized, dir * degreesPerSecond * Time.deltaTime, Space.Self);
+            IsRotating = true;
+            LastDir = dir;
+        }
+    }
+
+    /// <summary>True si el cursor esta sobre un elemento de UI (para no girar al usar botones).</summary>
+    bool IsPointerOverUI()
+    {
+        UnityEngine.EventSystems.EventSystem es = UnityEngine.EventSystems.EventSystem.current;
+        return es != null && es.IsPointerOverGameObject();
+    }
+
+    /// <summary>
+    /// Decide que hace un click. Prioridad:
+    /// 1) Si hay dialogo abierto -> avanza el dialogo.
+    /// 2) Raycast: NPC -> habla; Estrella -> recoge.
+    /// 3) Vacio -> no consume (deja girar).
+    /// Devuelve true si el gesto se consumio (no debe girar el planeta).
+    /// </summary>
+    bool HandlePress(Vector2 screenPos)
+    {
+        // 1. Dialogo abierto: cualquier click avanza.
+        if (DialogueManager.Instance != null && DialogueManager.Instance.IsOpen)
+        {
+            DialogueManager.Instance.Advance();
+            return true;
+        }
+
+        // 2. Raycast a NPC o estrella.
+        if (cam == null) cam = Camera.main;
+        if (cam == null) return false;
+
+        Ray ray = cam.ScreenPointToRay(screenPos);
+        if (Physics.Raycast(ray, out RaycastHit hit, 1000f))
+        {
+            NPC npc = hit.collider.GetComponentInParent<NPC>();
+            if (npc != null)
+            {
+                npc.Interact();
+                return true;
+            }
+
+            FallingStar star = hit.collider.GetComponentInParent<FallingStar>();
+            if (star != null)
+            {
+                star.Collect();
+                return true;
+            }
+        }
+        return false;
     }
 }
