@@ -1,12 +1,14 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Maneja el dialogo activo: instancia/posiciona la burbuja sobre quien habla,
-/// muestra las lineas y avanza al siguiente click. Singleton.
+/// Maneja el dialogo activo. Cada linea tiene su propio ancla (la burbuja salta al
+/// hablante de esa linea). Click para avanzar. Singleton.
 ///
-/// Generico: cualquier "hablante" puede abrir dialogo via Say(anchor, lines) —
-/// NPCs (StartDialogue) o el propio player (ej: mirar el telescopio).
+/// - Say(anchor, lineas): monologo simple (un solo hablante).
+/// - StartConversation(lineas, anclaPlayer, anclaOtro): conversacion con hablantes.
+/// - StartDialogue(npc): conversacion del NPC (usa su campo 'dialogue').
 /// </summary>
 public class DialogueManager : MonoBehaviour
 {
@@ -15,13 +17,21 @@ public class DialogueManager : MonoBehaviour
     [Tooltip("Prefab de la burbuja. Vacio = se carga Resources/SpeechBubble.")]
     public GameObject bubblePrefab;
 
+    struct Entry
+    {
+        public string text;
+        public Func<Vector3> anchor;
+    }
+
     SpeechBubble bubble;
-    string[] lines;
-    int line;
-    Func<Vector3> anchorGetter; // posicion (mundo) de la burbuja, evaluada cada frame
+    readonly List<Entry> entries = new List<Entry>();
+    int index;
 
     /// <summary>True mientras haya un dialogo abierto (bloquea giro y recoleccion).</summary>
-    public bool IsOpen => lines != null;
+    public bool IsOpen => entries.Count > 0;
+
+    /// <summary>NPC de la conversacion abierta (null si es un monologo u otro dialogo).</summary>
+    public NPC CurrentNpc { get; private set; }
 
     void Awake()
     {
@@ -29,24 +39,49 @@ public class DialogueManager : MonoBehaviour
         if (bubblePrefab == null) bubblePrefab = Resources.Load<GameObject>("SpeechBubble");
     }
 
-    /// <summary>Dialogo de un NPC (la burbuja lo sigue).</summary>
+    /// <summary>Conversacion del NPC (elige su variante activa segun el estado del cohete).</summary>
     public void StartDialogue(NPC npc)
     {
         if (npc == null) return;
-        Say(() => npc.BubbleAnchor, npc.lines);
+        StartConversation(npc.ActiveDialogue, () => npc.PlayerAnchor, () => npc.BubbleAnchor);
+        if (IsOpen) CurrentNpc = npc;
     }
 
-    /// <summary>Dialogo generico: burbuja anclada a 'anchor', con estas lineas.</summary>
+    /// <summary>Monologo simple: todas las lineas ancladas al mismo punto.</summary>
     public void Say(Func<Vector3> anchor, params string[] newLines)
     {
-        if (newLines == null || newLines.Length == 0 || anchor == null) return;
+        if (newLines == null || anchor == null) return;
+        entries.Clear();
+        foreach (string line in newLines)
+            if (!string.IsNullOrEmpty(line))
+                entries.Add(new Entry { text = line, anchor = anchor });
+        Open();
+    }
 
-        anchorGetter = anchor;
-        lines = newLines;
-        line = 0;
+    /// <summary>Conversacion: cada linea define su hablante y la burbuja salta a el.</summary>
+    public void StartConversation(DialogueLine[] convo, Func<Vector3> playerAnchor, Func<Vector3> otherAnchor)
+    {
+        if (convo == null || playerAnchor == null || otherAnchor == null) return;
+        entries.Clear();
+        foreach (DialogueLine line in convo)
+        {
+            if (line == null || string.IsNullOrEmpty(line.text)) continue;
+            entries.Add(new Entry
+            {
+                text = line.text,
+                anchor = line.speaker == DialogueLine.Speaker.Player ? playerAnchor : otherAnchor
+            });
+        }
+        Open();
+    }
 
+    void Open()
+    {
+        CurrentNpc = null; // StartDialogue lo asigna despues si aplica
+        if (entries.Count == 0) return;
+        index = 0;
         EnsureBubble();
-        if (bubble == null) { lines = null; return; }
+        if (bubble == null) { entries.Clear(); return; }
         bubble.gameObject.SetActive(true);
         ShowLine();
     }
@@ -55,14 +90,14 @@ public class DialogueManager : MonoBehaviour
     public void Advance()
     {
         if (!IsOpen) return;
-        line++;
-        if (line >= lines.Length) { Close(); return; }
+        index++;
+        if (index >= entries.Count) { Close(); return; }
         ShowLine();
     }
 
     void ShowLine()
     {
-        bubble.SetText(lines[line]);
+        bubble.SetText(entries[index].text);
         PositionBubble();
     }
 
@@ -74,10 +109,10 @@ public class DialogueManager : MonoBehaviour
 
     void PositionBubble()
     {
-        if (bubble == null || anchorGetter == null) return;
+        if (bubble == null || !IsOpen) return;
 
         bubble.transform.rotation = Quaternion.identity; // siempre derecha
-        Vector3 anchor = anchorGetter();
+        Vector3 anchor = entries[index].anchor();
 
         Camera cam = Camera.main;
         if (cam == null || !cam.orthographic || bubble.body == null)
@@ -121,8 +156,8 @@ public class DialogueManager : MonoBehaviour
 
     void Close()
     {
-        lines = null;
-        anchorGetter = null;
+        entries.Clear();
+        CurrentNpc = null;
         if (bubble != null) bubble.gameObject.SetActive(false);
     }
 }

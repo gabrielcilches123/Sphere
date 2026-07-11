@@ -17,10 +17,15 @@ MonoBehaviour:
   telescopeEvent: 0
   telescopeMessage: 
   telescopeDuration: -1
-  wakeUpLines:
+  wakeUpLines: []
+  dialogueLines: []
+  dialogueLinesRocketComplete: []
+  friendLeaves: 0
+  afterFriendLeavesLines: []
+  sabotageRocket: 1
+  sabotageLines:
   - No. Este cohete no va a funcionar.
   - Tengo que hacerlo mejor. Otra vez.
-  friendLines: []
-  friendLeaves: 0
-  demolishRocket: 1
   starCollectionDisabled: 0
+  requireRocketCompleteToSleep: 0
+  cantSleepLine: Todavia no... el cohete no esta terminado.

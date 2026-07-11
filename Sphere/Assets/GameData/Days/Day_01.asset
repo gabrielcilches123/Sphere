@@ -18,10 +18,26 @@ MonoBehaviour:
   telescopeMessage: 
   telescopeDuration: -1
   wakeUpLines: []
-  friendLines:
-  - "\xA1Ya casi esta listo nuestro cohete!"
-  - Recoge las estrellas que caigan y ponlas en el cohete.
-  - "\xA1Y cuando este listo... nos vamos de viaje!"
+  dialogueLines:
+  - speaker: 0
+    text: "\xA1Ya casi esta listo nuestro cohete!"
+  - speaker: 0
+    text: Recoge las estrellas que caigan y ponlas en el cohete.
+  - speaker: 1
+    text: "\xA1Voy!"
+  - speaker: 0
+    text: "\xA1Y cuando este listo... nos vamos de viaje!"
+  dialogueLinesRocketComplete:
+  - speaker: 0
+    text: "\xA1Genial, el cohete esta terminado!"
+  - speaker: 0
+    text: "Ve a dormir, ma\xF1ana despegaremos temprano."
+  - speaker: 0
+    text: Nos espera una gran aventura.
   friendLeaves: 0
-  demolishRocket: 0
+  afterFriendLeavesLines: []
+  sabotageRocket: 0
+  sabotageLines: []
   starCollectionDisabled: 0
+  requireRocketCompleteToSleep: 1
+  cantSleepLine: Todavia no... nuestro cohete no esta terminado.

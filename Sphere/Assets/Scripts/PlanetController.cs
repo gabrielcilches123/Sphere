@@ -45,6 +45,11 @@ public class PlanetController : MonoBehaviour
         if (TelescopeCinematic.Instance != null && TelescopeCinematic.Instance.IsPlaying) return;
         if (CraftingBank.Instance != null && CraftingBank.Instance.IsMenuOpen) return;
 
+        // Secuencia guionada en curso: solo se permite avanzar el dialogo abierto.
+        bool dialogueOpen = DialogueManager.Instance != null && DialogueManager.Instance.IsOpen;
+        if (StoryDirector.Instance != null && StoryDirector.Instance.IsSequenceRunning && !dialogueOpen)
+            return;
+
         Pointer pointer = Pointer.current;
         if (pointer == null) return;
 
@@ -70,7 +75,8 @@ public class PlanetController : MonoBehaviour
         if (pointer.press.wasReleasedThisFrame)
             suppressRotation = false;
 
-        bool dialogueOpen = DialogueManager.Instance != null && DialogueManager.Instance.IsOpen;
+        // Reevaluar: el dialogo pudo abrirse/cerrarse durante el HandlePress de este frame.
+        dialogueOpen = DialogueManager.Instance != null && DialogueManager.Instance.IsOpen;
         if (pointer.press.isPressed && !suppressRotation && !dialogueOpen && axis != Vector3.zero)
         {
             float x = pointer.position.ReadValue().x;

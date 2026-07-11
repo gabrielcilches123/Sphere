@@ -18,7 +18,12 @@ MonoBehaviour:
   telescopeMessage: Tu amigo aterriza en un planeta lejano. Se ve feliz.
   telescopeDuration: -1
   wakeUpLines: []
-  friendLines: []
+  dialogueLines: []
+  dialogueLinesRocketComplete: []
   friendLeaves: 0
-  demolishRocket: 0
+  afterFriendLeavesLines: []
+  sabotageRocket: 0
+  sabotageLines: []
   starCollectionDisabled: 0
+  requireRocketCompleteToSleep: 0
+  cantSleepLine: Todavia no... el cohete no esta terminado.

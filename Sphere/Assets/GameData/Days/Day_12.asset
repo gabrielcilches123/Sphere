@@ -19,7 +19,12 @@ MonoBehaviour:
   telescopeDuration: -1
   wakeUpLines:
   - "\xBFPara que seguir recogiendo estrellas...?"
-  friendLines: []
+  dialogueLines: []
+  dialogueLinesRocketComplete: []
   friendLeaves: 0
-  demolishRocket: 0
+  afterFriendLeavesLines: []
+  sabotageRocket: 0
+  sabotageLines: []
   starCollectionDisabled: 1
+  requireRocketCompleteToSleep: 0
+  cantSleepLine: Todavia no... el cohete no esta terminado.

@@ -31,17 +31,40 @@ public class DayConfigSO : ScriptableObject
     [Tooltip("Lineas que dice el PLAYER al despertar este dia (vacio = nada).")]
     public string[] wakeUpLines;
 
-    [TextArea]
-    [Tooltip("Lineas del AMIGO este dia (si no esta vacio, reemplaza su dialogo).")]
-    public string[] friendLines;
+    [Tooltip("Conversacion del dia al clickear al amigo (si no esta vacia, reemplaza " +
+             "su dialogo). Cada linea define QUIEN habla (Amigo/Player) y el orden.")]
+    public DialogueLine[] dialogueLines;
 
-    [Tooltip("Este dia el amigo se despide y se va en el cohete (GDD dia 2).")]
+    [Tooltip("Variante de la conversacion cuando el cohete en obra esta COMPLETO " +
+             "(vacio = usar siempre la normal).")]
+    public DialogueLine[] dialogueLinesRocketComplete;
+
+    [Tooltip("Este dia el amigo se despide y se va en el cohete (GDD dia 2). La secuencia " +
+             "espera a que el PLAYER clickee al amigo para empezar.")]
     public bool friendLeaves = false;
 
-    [Tooltip("Al despertar, el cohete en obra se destruye (auto-sabotaje, GDD dia 10).")]
-    public bool demolishRocket = false;
+    [TextArea]
+    [Tooltip("Lineas del PLAYER despues de que el amigo se va (tras el fade).")]
+    public string[] afterFriendLeavesLines;
+
+    [Tooltip("Desde este dia se activa el AUTO-SABOTAJE (GDD dia 10, queda activo): " +
+             "cuando al cohete le falte UNA estrella, el player duda y lo destruye.")]
+    public bool sabotageRocket = false;
+
+    [TextArea]
+    [Tooltip("Lineas del PLAYER en el momento del sabotaje (vacio = las por defecto " +
+             "del StoryDirector).")]
+    public string[] sabotageLines;
 
     [Tooltip("Desde este dia se APAGA la recoleccion de estrellas (queda apagada " +
              "los dias siguientes; GDD dia 12).")]
     public bool starCollectionDisabled = false;
+
+    [Header("Dormir")]
+    [Tooltip("Este dia NO se puede dormir hasta completar el cohete en obra (GDD dia 1).")]
+    public bool requireRocketCompleteToSleep = false;
+
+    [TextArea]
+    [Tooltip("Linea del player si intenta dormir bloqueado.")]
+    public string cantSleepLine = "Todavia no... el cohete no esta terminado.";
 }

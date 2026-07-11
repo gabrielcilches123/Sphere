@@ -20,7 +20,12 @@ MonoBehaviour:
   wakeUpLines:
   - Ese cohete era pura chatarra de todos modos.
   - Yo puedo construir uno mejor. Mucho mejor.
-  friendLines: []
+  dialogueLines: []
+  dialogueLinesRocketComplete: []
   friendLeaves: 0
-  demolishRocket: 0
+  afterFriendLeavesLines: []
+  sabotageRocket: 0
+  sabotageLines: []
   starCollectionDisabled: 0
+  requireRocketCompleteToSleep: 0
+  cantSleepLine: Todavia no... el cohete no esta terminado.

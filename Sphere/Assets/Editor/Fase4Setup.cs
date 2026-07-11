@@ -33,30 +33,49 @@ public static class Fase4Setup
         if (npc != null) sd.friend = npc.GetComponent<NPC>();
         GameObject player = GameObject.Find("Player");
         if (player != null) sd.player = player.transform;
+        GameObject siteGo = GameObject.Find("RocketBuildSite");
+        if (siteGo != null) sd.site = siteGo.GetComponent<RocketBuildSite>();
 
         // 2. Timeline GDD seccion 8, un asset por dia.
         Directory.CreateDirectory(Dir);
 
         var d1 = Cfg(dm, 1);
-        d1.friendLines = new[]
+        d1.dialogueLines = new[]
         {
-            "¡Ya casi esta listo nuestro cohete!",
-            "Recoge las estrellas que caigan y ponlas en el cohete.",
-            "¡Y cuando este listo... nos vamos de viaje!"
+            L(DialogueLine.Speaker.Amigo, "¡Ya casi esta listo nuestro cohete!"),
+            L(DialogueLine.Speaker.Amigo, "Recoge las estrellas que caigan y ponlas en el cohete."),
+            L(DialogueLine.Speaker.Player, "¡Voy!"),
+            L(DialogueLine.Speaker.Amigo, "¡Y cuando este listo... nos vamos de viaje!")
+        };
+        d1.dialogueLinesRocketComplete = new[]
+        {
+            L(DialogueLine.Speaker.Amigo, "¡Genial, el cohete esta terminado!"),
+            L(DialogueLine.Speaker.Amigo, "Ve a dormir, mañana despegaremos temprano."),
+            L(DialogueLine.Speaker.Amigo, "Nos espera una gran aventura.")
         };
         d1.starsOverride = 12; // el primer cohete cuesta 8
+        d1.requireRocketCompleteToSleep = true; // no dormir sin terminar el cohete
+        d1.cantSleepLine = "Todavia no... nuestro cohete no esta terminado.";
 
         var d2 = Cfg(dm, 2);
         d2.friendLeaves = true;
-        d2.friendLines = new[]
+        d2.dialogueLines = new[]
         {
-            "¡Esta listo! Hoy nos vamos de este lugar.",
-            "Sube, hay un asiento para ti.",
-            "...",
-            "¿No vienes?",
-            "...Entiendo. Te estare esperando, alla arriba."
+            L(DialogueLine.Speaker.Amigo, "¡Esta listo! Hoy nos vamos de este lugar."),
+            L(DialogueLine.Speaker.Amigo, "Sube, hay un asiento para ti."),
+            L(DialogueLine.Speaker.Player, "..."),
+            L(DialogueLine.Speaker.Amigo, "¿No vienes?"),
+            L(DialogueLine.Speaker.Player, "Es que... ese cohete es pura chatarra."),
+            L(DialogueLine.Speaker.Player, "Mejor construyo uno mas grande. Y te alcanzo."),
+            L(DialogueLine.Speaker.Amigo, "...Entiendo. Te estare esperando, alla arriba.")
         };
         d2.wakeUpLines = new[] { "Hoy es el dia. El cohete esta listo..." };
+        d2.afterFriendLeavesLines = new[]
+        {
+            "...",
+            "Buen viaje, amigo.",
+            "Ya lo alcanzare. Con un cohete mejor."
+        };
 
         Cfg(dm, 3).wakeUpLines = new[]
         {
@@ -77,12 +96,13 @@ public static class Fase4Setup
             d8.telescopeMessage = "Tu amigo salta entre asteroides. Parece divertirse mucho.";
 
         var d10 = Cfg(dm, 10);
-        d10.demolishRocket = true;
-        d10.wakeUpLines = new[]
+        d10.sabotageRocket = true; // desde hoy, al faltar 1 estrella: sabotaje
+        d10.sabotageLines = new[]
         {
             "No. Este cohete no va a funcionar.",
             "Tengo que hacerlo mejor. Otra vez."
         };
+        d10.wakeUpLines = new string[0];
 
         Cfg(dm, 11).wakeUpLines = new[] { "El plan no esta yendo bien..." };
 
@@ -104,6 +124,9 @@ public static class Fase4Setup
         UnityEditor.SceneManagement.EditorSceneManager.SaveScene(scene);
         Debug.Log("[Fase4] Guion de dias 1-13 en Assets/GameData/Days y escena guardada.");
     }
+
+    static DialogueLine L(DialogueLine.Speaker speaker, string text)
+        => new DialogueLine { speaker = speaker, text = text };
 
     /// <summary>Carga o crea el asset DayConfigSO del dia y garantiza que este en la lista.</summary>
     static DayConfigSO Cfg(DayManager dm, int day)

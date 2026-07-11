@@ -233,16 +233,6 @@ MonoBehaviour:
   startingDay: 1
   starsPerDay: 10
   dayConfigs:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
   - {fileID: 11400000, guid: fe009b12492de874b810dd187098fd73, type: 2}
   - {fileID: 11400000, guid: d9052c04d03740a409a9ab1a183bc313, type: 2}
   - {fileID: 11400000, guid: da09748c00822c94aad3af53e366f80d, type: 2}
@@ -285,7 +275,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StoryDirector
   friend: {fileID: 601429131}
   player: {fileID: 2091476208}
-  site: {fileID: 0}
+  site: {fileID: 1676357894}
+  launchToFadeDelay: 1.2
+  mustTalkLine: Deberia hablar con mi amigo antes de dormir...
+  defaultSabotageLines:
+  - No. Este cohete no va a funcionar.
+  - Tengo que hacerlo mejor. Otra vez.
   autoStartFirstRocket: 1
   firstRocket:
     rocketName: Nuestro cohete
@@ -1327,11 +1322,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e7655b72981e56841b120e7f59ce9114, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPC
-  lines:
-  - Hola, viajero!
-  - Este planeta esta lleno de estrellas caidas.
-  - Recogelas todas... si no te aburres!
+  dialogue:
+  - speaker: 0
+    text: Hola, viajero!
+  dialogueRocketComplete: []
   bubbleOffset: {x: 0, y: 2.2, z: 0}
+  playerBubbleOffset: {x: 0, y: 1.8, z: 0}
   defaultFacesRight: 1
 --- !u!65 &601429132
 BoxCollider:
@@ -1443,7 +1439,7 @@ Transform:
   m_GameObject: {fileID: 800345985}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0.7071068, w: 0.7071068}
-  m_LocalPosition: {x: 5.192245, y: 0, z: 0.1}
+  m_LocalPosition: {x: 5.192245, y: 0, z: 0.4}
   m_LocalScale: {x: 0.85441977, y: 0.65724605, z: 0.6572462}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -36395,7 +36391,7 @@ Transform:
   m_GameObject: {fileID: 1676357892}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: 0.7071068, w: 0.7071068}
-  m_LocalPosition: {x: -4.9622087, y: -0.00000043092416, z: 0.2}
+  m_LocalPosition: {x: -4.9622087, y: -0.00000043092416, z: 0.4}
   m_LocalScale: {x: 1.3144921, y: 0.2300361, z: 0.9201446}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -36414,7 +36410,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RocketBuildSite
   starsPerClick: 1
-  labelHeight: 2.2
+  labelClearance: 0.9
+  playerBubbleOffset: {x: 0, y: 1.8, z: 0}
   emptyLine: Deberia elegir un cohete en el banco primero.
   noStarsLine: No me quedan estrellas...
   completedLine: Esta listo... creo.
@@ -36542,6 +36539,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 07fb91d6ef4a24f438a2218559db4935, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Igloo
+  playerBubbleOffset: {x: 0, y: 1.8, z: 0}
 --- !u!114 &1700231641
 MonoBehaviour:
   m_ObjectHideFlags: 0

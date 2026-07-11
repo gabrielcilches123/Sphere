@@ -19,8 +19,11 @@ public class RocketBuildSite : MonoBehaviour
     [Tooltip("Estrellas que se depositan por cada click.")]
     public int starsPerClick = 1;
 
-    [Tooltip("Altura de la etiqueta de progreso sobre el pad (unidades de mundo).")]
-    public float labelHeight = 2.2f;
+    [Tooltip("Separacion de la etiqueta sobre la PUNTA del cohete actual (o sobre el pad si esta vacio).")]
+    public float labelClearance = 0.9f;
+
+    [Tooltip("Offset de la burbuja sobre el player (para sus comentarios).")]
+    public Vector3 playerBubbleOffset = new Vector3(0f, 1.8f, 0f);
 
     [TextArea] public string emptyLine = "Deberia elegir un cohete en el banco primero.";
     [TextArea] public string noStarsLine = "No me quedan estrellas...";
@@ -33,6 +36,7 @@ public class RocketBuildSite : MonoBehaviour
     Transform rocketRoot;   // raiz del cohete en obra (se destruye al demoler)
     Transform body;         // cuerpo placeholder que crece
     TextMeshPro label;      // progreso "n/costo *"
+    Transform player;       // para las burbujas de comentario (habla el pinguino)
 
     void Awake() { Instance = this; }
 
@@ -41,15 +45,20 @@ public class RocketBuildSite : MonoBehaviour
         GetComponent<ClickInteractable>().onClick.AddListener(OnClicked);
         BuildLabel();
         UpdateLabel();
+
+        GameObject p = GameObject.FindWithTag("Player");
+        if (p == null) p = GameObject.Find("Player");
+        if (p != null) player = p.transform;
     }
 
     void LateUpdate()
     {
         // La etiqueta es un objeto RAIZ (colgarla del pad, con su escala no uniforme
-        // y rotando con el planeta, deforma el texto). Sigue al sitio cada frame.
+        // y rotando con el planeta, deforma el texto). Flota sobre la punta del cohete.
         if (label != null)
         {
-            label.transform.position = transform.position + transform.up * labelHeight + Vector3.back * 0.3f;
+            float top = CurrentRocketHeight() + labelClearance;
+            label.transform.position = transform.position + transform.up * top + Vector3.back * 0.3f;
             label.transform.rotation = Quaternion.identity;
         }
     }
@@ -66,26 +75,38 @@ public class RocketBuildSite : MonoBehaviour
     {
         switch (CurrentState)
         {
-            case State.Empty: SayOverSite(emptyLine); break;
+            case State.Empty: SayAsPlayer(emptyLine); break;
             case State.Building: Deposit(); break;
-            case State.Completed: SayOverSite(completedLine); break;
+            case State.Completed: SayAsPlayer(completedLine); break;
         }
     }
 
     void Deposit()
     {
+        bool sabotage = StoryDirector.Instance != null && StoryDirector.Instance.SabotageActive;
+
         int remaining = Current.starCost - Deposited;
-        int amount = Mathf.Min(starsPerClick, remaining);
+        // Con el sabotaje activo el cohete NUNCA se completa: se deposita como mucho
+        // hasta dejarlo a UNA estrella (y ahi se dispara el auto-sabotaje).
+        int cap = sabotage ? remaining - 1 : remaining;
+        int amount = Mathf.Min(starsPerClick, cap);
 
         int deposited = 0;
         for (int i = 0; i < amount; i++)
             if (GameManager.Instance != null && GameManager.Instance.SpendStars(1)) deposited++;
 
-        if (deposited == 0) { SayOverSite(noStarsLine); return; }
+        if (deposited == 0 && amount > 0) { SayAsPlayer(noStarsLine); return; }
 
         Deposited += deposited;
         UpdateVisual();
         UpdateLabel();
+
+        if (sabotage && Current.starCost - Deposited <= 1)
+        {
+            // "Cuando esta casi terminado te auto-saboteas" (GDD).
+            StoryDirector.Instance.TriggerSabotage();
+            return;
+        }
 
         if (Deposited >= Current.starCost)
         {
@@ -94,11 +115,13 @@ public class RocketBuildSite : MonoBehaviour
         }
     }
 
-    void SayOverSite(string line)
+    /// <summary>Los comentarios los dice el PLAYER (pinguino), no el cohete.</summary>
+    void SayAsPlayer(string line)
     {
         if (DialogueManager.Instance == null) return;
-        Transform t = transform;
-        DialogueManager.Instance.Say(() => t.position + t.up * 2.2f, line);
+        Transform p = player != null ? player : transform;
+        Vector3 off = player != null ? playerBubbleOffset : Vector3.up * 2.2f;
+        DialogueManager.Instance.Say(() => p.position + off, line);
     }
 
     // ---------- API para el guion (Fase 4) ----------
@@ -190,13 +213,20 @@ public class RocketBuildSite : MonoBehaviour
         CurrentState = State.Empty;
     }
 
+    /// <summary>Altura actual del cohete en obra (0 si el pad esta vacio).</summary>
+    float CurrentRocketHeight()
+    {
+        if (Current == null) return 0f;
+        float p = Current.starCost > 0 ? (float)Deposited / Current.starCost : 1f;
+        return Current.height * Mathf.Lerp(0.15f, 1f, p);
+    }
+
     void UpdateVisual()
     {
         if (body == null || Current == null) return;
 
         // El cohete crece con el progreso: de 15% a 100% de su altura.
-        float p = Current.starCost > 0 ? (float)Deposited / Current.starCost : 1f;
-        float h = Current.height * Mathf.Lerp(0.15f, 1f, p);
+        float h = CurrentRocketHeight();
 
         // Capsula primitiva mide 2 unidades de alto a escala 1.
         body.localScale = new Vector3(Current.height * 0.28f, h * 0.5f, Current.height * 0.28f);

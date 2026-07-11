@@ -19,12 +19,29 @@ MonoBehaviour:
   telescopeDuration: -1
   wakeUpLines:
   - Hoy es el dia. El cohete esta listo...
-  friendLines:
-  - "\xA1Esta listo! Hoy nos vamos de este lugar."
-  - Sube, hay un asiento para ti.
-  - ...
-  - "\xBFNo vienes?"
-  - ...Entiendo. Te estare esperando, alla arriba.
+  dialogueLines:
+  - speaker: 0
+    text: "\xA1Esta listo! Hoy nos vamos de este lugar."
+  - speaker: 0
+    text: Sube, hay un asiento para ti.
+  - speaker: 1
+    text: ...
+  - speaker: 0
+    text: "\xBFNo vienes?"
+  - speaker: 1
+    text: Es que... ese cohete es pura chatarra.
+  - speaker: 1
+    text: Mejor construyo uno mas grande. Y te alcanzo.
+  - speaker: 0
+    text: ...Entiendo. Te estare esperando, alla arriba.
+  dialogueLinesRocketComplete: []
   friendLeaves: 1
-  demolishRocket: 0
+  afterFriendLeavesLines:
+  - ...
+  - Buen viaje, amigo.
+  - Ya lo alcanzare. Con un cohete mejor.
+  sabotageRocket: 1
+  sabotageLines: []
   starCollectionDisabled: 0
+  requireRocketCompleteToSleep: 0
+  cantSleepLine: Todavia no... el cohete no esta terminado.

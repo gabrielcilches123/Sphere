@@ -10,10 +10,41 @@ using UnityEngine;
 /// </summary>
 public class StoryDirector : MonoBehaviour
 {
+    public static StoryDirector Instance { get; private set; }
+
     [Header("Referencias (vacio = se buscan solas)")]
     public NPC friend;
     public Transform player;
     public RocketBuildSite site;
+
+    [Header("Partida del amigo")]
+    [Tooltip("Segundos entre el despegue del cohete y el fade (corto para que no de " +
+             "tiempo a moverse).")]
+    public float launchToFadeDelay = 1.2f;
+
+    [TextArea]
+    [Tooltip("Linea del player si intenta dormir sin hablar con el amigo el dia de la partida.")]
+    public string mustTalkLine = "Deberia hablar con mi amigo antes de dormir...";
+
+    /// <summary>True mientras corre una secuencia guionada (bloquea el input del mundo).</summary>
+    public bool IsSequenceRunning { get; private set; }
+
+    /// <summary>True si hoy el amigo se va y aun no ha pasado (bloquea dormir).</summary>
+    public bool FriendDeparturePending { get; private set; }
+
+    [Header("Auto-sabotaje (GDD dia 10)")]
+    [TextArea]
+    [Tooltip("Lineas por defecto del sabotaje (un dia puede traer las suyas).")]
+    public string[] defaultSabotageLines =
+    {
+        "No. Este cohete no va a funcionar.",
+        "Tengo que hacerlo mejor. Otra vez."
+    };
+
+    /// <summary>True desde el primer dia con sabotageRocket (queda activo: el bucle).</summary>
+    public bool SabotageActive { get; private set; }
+
+    string[] activeSabotageLines;
 
     [Header("Dia 1: primer cohete (junto al amigo)")]
     [Tooltip("Si esta activo, el dia 1 ya hay un cohete en obra en el pad (GDD dia 1).")]
@@ -31,9 +62,11 @@ public class StoryDirector : MonoBehaviour
 
     DayManager dm;
     bool collectionDisabledSticky; // una vez apagada, queda apagada (GDD 7.4)
+    bool caughtUp; // ya se aplicaron las consecuencias de dias anteriores al inicial
 
     void Awake()
     {
+        Instance = this;
         dm = GetComponent<DayManager>();
         if (dm == null) dm = FindFirstObjectByType<DayManager>();
         if (dm != null) dm.OnDayStarted += HandleDayStarted;
@@ -44,7 +77,14 @@ public class StoryDirector : MonoBehaviour
         if (dm != null) dm.OnDayStarted -= HandleDayStarted;
     }
 
-    void Start()
+    void Start() { EnsureRefs(); }
+
+    /// <summary>
+    /// Resuelve las referencias en el momento de usarlas: el dia 1 arranca desde el
+    /// Start() del DayManager, que puede ejecutarse ANTES que el Start() de este
+    /// componente (y las referencias aun estarian vacias).
+    /// </summary>
+    void EnsureRefs()
     {
         if (friend == null) friend = FindFirstObjectByType<NPC>(FindObjectsInactive.Include);
         if (site == null) site = RocketBuildSite.Instance;
@@ -64,6 +104,12 @@ public class StoryDirector : MonoBehaviour
 
     IEnumerator RunDay(int day)
     {
+        EnsureRefs();
+
+        // Al empezar la partida en un dia > 1 (Starting Day para testear), aplicar las
+        // consecuencias persistentes de los dias saltados (amigo que se fue, etc.).
+        if (!caughtUp) { CatchUpTo(day); caughtUp = true; }
+
         DayConfigSO cfg = dm.GetConfig(day);
 
         // --- Aplicado en negro (durante el fade) ---
@@ -76,8 +122,14 @@ public class StoryDirector : MonoBehaviour
             site.CurrentState == RocketBuildSite.State.Empty)
             site.BeginConstruction(firstRocket);
 
-        if (cfg != null && cfg.friendLines != null && cfg.friendLines.Length > 0 && friend != null)
-            friend.lines = cfg.friendLines;
+        if (cfg != null && friend != null)
+        {
+            if (cfg.dialogueLines != null && cfg.dialogueLines.Length > 0)
+                friend.dialogue = cfg.dialogueLines;
+            // La variante se asigna SIEMPRE (aunque vacia): asi un dia sin variante
+            // no hereda la del dia anterior (ej: la despedida del dia 2).
+            friend.dialogueRocketComplete = cfg.dialogueLinesRocketComplete;
+        }
 
         // --- Esperar a que abra el fade (y un respiro tras el anuncio de dia) ---
 
@@ -99,46 +151,136 @@ public class StoryDirector : MonoBehaviour
             yield return new WaitForSeconds(0.3f);
         }
 
-        // --- Auto-sabotaje: demoler el cohete en obra ---
+        // --- Auto-sabotaje: se ACTIVA este dia (se dispara al faltar 1 estrella) ---
 
-        if (cfg.demolishRocket && site != null &&
-            site.CurrentState != RocketBuildSite.State.Empty)
+        if (cfg.sabotageRocket)
         {
-            site.DemolishRocket();
+            SabotageActive = true;
+            if (cfg.sabotageLines != null && cfg.sabotageLines.Length > 0)
+                activeSabotageLines = cfg.sabotageLines;
         }
 
         // --- Partida del amigo (GDD dia 2) ---
 
         if (cfg.friendLeaves && friend != null && !friend.HasLeft)
         {
-            // El amigo dice su despedida/invitacion.
+            // La secuencia NO arranca sola: espera a que el PLAYER clickee al amigo
+            // y complete su conversacion de despedida.
+            FriendDeparturePending = true;
             if (DialogueManager.Instance != null)
             {
-                friend.Interact(); // voltea al player y abre su dialogo
+                while (DialogueManager.Instance.CurrentNpc != friend) yield return null;
                 while (DialogueManager.Instance.IsOpen) yield return null;
             }
 
-            // Si el cohete esta completo, despega; el amigo desaparece en el fade.
+            // Desde aqui el input del mundo queda bloqueado (no da tiempo a moverse).
+            IsSequenceRunning = true;
+
             bool launched = false;
             if (site != null && site.CurrentState == RocketBuildSite.State.Completed)
             {
                 site.LaunchRocket();
                 launched = true;
             }
-            if (launched) yield return new WaitForSeconds(2.6f);
+            yield return new WaitForSeconds(launched ? launchToFadeDelay : 0.5f);
 
             NPC f = friend;
             if (TransitionManager.Instance != null)
+            {
                 TransitionManager.Instance.Play(() =>
                 {
                     f.HasLeft = true;
                     f.gameObject.SetActive(false);
                 });
+                while (TransitionManager.Instance.IsRunning) yield return null;
+            }
             else
             {
                 f.HasLeft = true;
                 f.gameObject.SetActive(false);
             }
+
+            FriendDeparturePending = false;
+
+            // Despedida del player, ya con el amigo lejos.
+            if (cfg.afterFriendLeavesLines != null && cfg.afterFriendLeavesLines.Length > 0 &&
+                player != null && DialogueManager.Instance != null)
+            {
+                yield return new WaitForSeconds(0.4f);
+                Transform p2 = player;
+                Vector3 off2 = playerBubbleOffset;
+                DialogueManager.Instance.Say(() => p2.position + off2, cfg.afterFriendLeavesLines);
+                while (DialogueManager.Instance.IsOpen) yield return null;
+            }
+
+            IsSequenceRunning = false;
         }
+    }
+
+    /// <summary>
+    /// Aplica los efectos persistentes de todos los dias ANTERIORES a 'day':
+    /// partida del amigo, recoleccion apagada y sabotaje activo. Asi Starting Day
+    /// funciona como si esos dias ya se hubieran jugado.
+    /// </summary>
+    void CatchUpTo(int day)
+    {
+        if (dm == null) return;
+
+        var previous = new System.Collections.Generic.List<DayConfigSO>();
+        foreach (DayConfigSO c in dm.dayConfigs)
+            if (c != null && c.day < day) previous.Add(c);
+        previous.Sort((a, b) => a.day.CompareTo(b.day)); // el mas reciente pisa (lineas)
+
+        foreach (DayConfigSO c in previous)
+        {
+            if (c.starCollectionDisabled) collectionDisabledSticky = true;
+
+            if (c.sabotageRocket)
+            {
+                SabotageActive = true;
+                if (c.sabotageLines != null && c.sabotageLines.Length > 0)
+                    activeSabotageLines = c.sabotageLines;
+            }
+
+            if (c.friendLeaves && friend != null)
+            {
+                friend.HasLeft = true;
+                friend.gameObject.SetActive(false);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Llamado por RocketBuildSite cuando al cohete le falta UNA estrella y el
+    /// sabotaje esta activo: el player duda y destruye el cohete (GDD dia 10).
+    /// </summary>
+    public void TriggerSabotage()
+    {
+        if (!SabotageActive || IsSequenceRunning) return;
+        StartCoroutine(SabotageRoutine());
+    }
+
+    IEnumerator SabotageRoutine()
+    {
+        IsSequenceRunning = true;
+        EnsureRefs();
+        yield return new WaitForSeconds(0.4f);
+
+        string[] lines = (activeSabotageLines != null && activeSabotageLines.Length > 0)
+            ? activeSabotageLines
+            : defaultSabotageLines;
+
+        if (player != null && DialogueManager.Instance != null && lines.Length > 0)
+        {
+            Transform p = player;
+            Vector3 off = playerBubbleOffset;
+            DialogueManager.Instance.Say(() => p.position + off, lines);
+            while (DialogueManager.Instance.IsOpen) yield return null;
+        }
+
+        yield return new WaitForSeconds(0.3f);
+        if (site != null) site.DemolishRocket();
+
+        IsSequenceRunning = false;
     }
 }
