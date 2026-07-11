@@ -23,8 +23,12 @@ public class StarSpawner : MonoBehaviour
     [Tooltip("Distancia desde el centro donde nacen las estrellas (debe ser > surfaceRadius).")]
     public float spawnRadius = 11f;
 
-    [Tooltip("Segundos entre cada estrella.")]
+    [Tooltip("GOTEO DE PRUEBA: segundos entre estrellas. 0 o negativo = desactivado " +
+             "(modo tandas por dia via SpawnBatch, GDD 7.1).")]
     public float spawnInterval = 1.5f;
+
+    [Tooltip("Al spawnear una tanda, segundos entre cada estrella de la tanda.")]
+    public float batchStagger = 0.35f;
 
     [Tooltip("Velocidad de caida (unidades por segundo).")]
     public float fallSpeed = 6f;
@@ -51,7 +55,8 @@ public class StarSpawner : MonoBehaviour
 
     void Update()
     {
-        if (GameManager.Instance != null && GameManager.Instance.IsBusy) return;
+        // Goteo continuo solo si esta activado (para testear sin sistema de dias).
+        if (spawnInterval <= 0f) return;
         if (planet == null || starPrefab == null) return;
 
         timer += Time.deltaTime;
@@ -59,6 +64,22 @@ public class StarSpawner : MonoBehaviour
         {
             timer -= spawnInterval;
             SpawnStar();
+        }
+    }
+
+    /// <summary>Deja caer una tanda de 'count' estrellas (las X estrellas del dia, GDD 7.1).</summary>
+    public void SpawnBatch(int count)
+    {
+        if (count <= 0) return;
+        StartCoroutine(BatchRoutine(count));
+    }
+
+    System.Collections.IEnumerator BatchRoutine(int count)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            SpawnStar();
+            if (batchStagger > 0f) yield return new WaitForSeconds(batchStagger);
         }
     }
 

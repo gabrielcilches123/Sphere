@@ -23,6 +23,7 @@ public class PlanetController : MonoBehaviour
     public Camera cam;
 
     bool suppressRotation; // el gesto actual empezo sobre una estrella
+    HoldInteractable activeHold; // hold en curso (iglu, etc.)
 
     /// <summary>True en los frames en que el planeta esta girando por input.</summary>
     public bool IsRotating { get; private set; }
@@ -39,14 +40,31 @@ public class PlanetController : MonoBehaviour
     {
         IsRotating = false; // por defecto no gira este frame
 
-        // Durante el fin de mision (fade) no se gira ni se recoge.
-        if (GameManager.Instance != null && GameManager.Instance.IsBusy) return;
+        // Durante una transicion (fade) o cinematica no se gira ni se recoge.
+        if (TransitionManager.Instance != null && TransitionManager.Instance.IsRunning) return;
+        if (TelescopeCinematic.Instance != null && TelescopeCinematic.Instance.IsPlaying) return;
 
         Pointer pointer = Pointer.current;
         if (pointer == null) return;
 
         if (pointer.press.wasPressedThisFrame)
             suppressRotation = IsPointerOverUI() || HandlePress(pointer.position.ReadValue());
+
+        // Hold en curso: avanzar mientras se mantiene sobre el objeto.
+        if (activeHold != null)
+        {
+            if (!pointer.press.isPressed)
+            {
+                activeHold.CancelHold();
+                activeHold = null;
+            }
+            else
+            {
+                bool stillOver = IsPointerOver(activeHold, pointer.position.ReadValue());
+                bool completed = activeHold.TickHold(Time.deltaTime, stillOver);
+                if (completed || !activeHold.IsHolding) activeHold = null;
+            }
+        }
 
         if (pointer.press.wasReleasedThisFrame)
             suppressRotation = false;
@@ -105,7 +123,31 @@ public class PlanetController : MonoBehaviour
                 star.Collect();
                 return true;
             }
+
+            HoldInteractable hold = hit.collider.GetComponentInParent<HoldInteractable>();
+            if (hold != null)
+            {
+                hold.BeginHold();
+                activeHold = hold;
+                return true;
+            }
+
+            ClickInteractable clickable = hit.collider.GetComponentInParent<ClickInteractable>();
+            if (clickable != null)
+            {
+                clickable.Click();
+                return true;
+            }
         }
         return false;
+    }
+
+    /// <summary>True si el cursor sigue sobre el mismo HoldInteractable.</summary>
+    bool IsPointerOver(HoldInteractable hold, Vector2 screenPos)
+    {
+        if (cam == null) return false;
+        Ray ray = cam.ScreenPointToRay(screenPos);
+        return Physics.Raycast(ray, out RaycastHit hit, 1000f)
+            && hit.collider.GetComponentInParent<HoldInteractable>() == hold;
     }
 }

@@ -20,6 +20,9 @@ public class TransitionManager : MonoBehaviour
 
     CanvasGroup group;
 
+    /// <summary>True mientras corre un fade (para bloquear input durante transiciones).</summary>
+    public bool IsRunning { get; private set; }
+
     void Awake()
     {
         Instance = this;
@@ -62,10 +65,12 @@ public class TransitionManager : MonoBehaviour
 
     IEnumerator Routine(Action atBlack, Action onDone)
     {
+        IsRunning = true;
         yield return Fade(0f, 1f);
         atBlack?.Invoke();
         if (holdTime > 0f) yield return new WaitForSeconds(holdTime);
         yield return Fade(1f, 0f);
+        IsRunning = false;
         onDone?.Invoke();
     }
 

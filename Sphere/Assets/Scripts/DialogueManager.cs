@@ -1,8 +1,12 @@
+using System;
 using UnityEngine;
 
 /// <summary>
-/// Maneja el dialogo activo: instancia/posiciona la burbuja sobre el NPC, muestra las
-/// lineas y avanza al siguiente click. Singleton (DialogueManager.Instance).
+/// Maneja el dialogo activo: instancia/posiciona la burbuja sobre quien habla,
+/// muestra las lineas y avanza al siguiente click. Singleton.
+///
+/// Generico: cualquier "hablante" puede abrir dialogo via Say(anchor, lines) —
+/// NPCs (StartDialogue) o el propio player (ej: mirar el telescopio).
 /// </summary>
 public class DialogueManager : MonoBehaviour
 {
@@ -12,27 +16,37 @@ public class DialogueManager : MonoBehaviour
     public GameObject bubblePrefab;
 
     SpeechBubble bubble;
-    NPC current;
+    string[] lines;
     int line;
-    Camera cam;
+    Func<Vector3> anchorGetter; // posicion (mundo) de la burbuja, evaluada cada frame
 
     /// <summary>True mientras haya un dialogo abierto (bloquea giro y recoleccion).</summary>
-    public bool IsOpen => current != null;
+    public bool IsOpen => lines != null;
 
     void Awake()
     {
         Instance = this;
-        cam = Camera.main;
         if (bubblePrefab == null) bubblePrefab = Resources.Load<GameObject>("SpeechBubble");
     }
 
+    /// <summary>Dialogo de un NPC (la burbuja lo sigue).</summary>
     public void StartDialogue(NPC npc)
     {
-        if (npc == null || npc.lines == null || npc.lines.Length == 0) return;
-        current = npc;
+        if (npc == null) return;
+        Say(() => npc.BubbleAnchor, npc.lines);
+    }
+
+    /// <summary>Dialogo generico: burbuja anclada a 'anchor', con estas lineas.</summary>
+    public void Say(Func<Vector3> anchor, params string[] newLines)
+    {
+        if (newLines == null || newLines.Length == 0 || anchor == null) return;
+
+        anchorGetter = anchor;
+        lines = newLines;
         line = 0;
+
         EnsureBubble();
-        if (bubble == null) return;
+        if (bubble == null) { lines = null; return; }
         bubble.gameObject.SetActive(true);
         ShowLine();
     }
@@ -40,32 +54,32 @@ public class DialogueManager : MonoBehaviour
     /// <summary>Avanza a la siguiente linea; cierra si era la ultima.</summary>
     public void Advance()
     {
-        if (current == null) return;
+        if (!IsOpen) return;
         line++;
-        if (line >= current.lines.Length) { Close(); return; }
+        if (line >= lines.Length) { Close(); return; }
         ShowLine();
     }
 
     void ShowLine()
     {
-        bubble.SetText(current.lines[line]);
+        bubble.SetText(lines[line]);
         PositionBubble();
     }
 
     void LateUpdate()
     {
-        // Seguir al NPC (por si se mueve/gira) mientras el dialogo esta abierto.
-        if (current != null && bubble != null) PositionBubble();
+        // Seguir al hablante (por si gira con el planeta) mientras el dialogo esta abierto.
+        if (IsOpen && bubble != null) PositionBubble();
     }
 
     void PositionBubble()
     {
-        if (bubble == null || current == null) return;
+        if (bubble == null || anchorGetter == null) return;
 
         bubble.transform.rotation = Quaternion.identity; // siempre derecha
-        Vector3 anchor = current.BubbleAnchor;
+        Vector3 anchor = anchorGetter();
 
-        if (cam == null) cam = Camera.main;
+        Camera cam = Camera.main;
         if (cam == null || !cam.orthographic || bubble.body == null)
         {
             bubble.transform.position = anchor;
@@ -87,7 +101,7 @@ public class DialogueManager : MonoBehaviour
         world.z = anchor.z;
         bubble.transform.position = world;
 
-        // La colita se desplaza para seguir apuntando al NPC (que esta bajo el anchor).
+        // La colita se desplaza para seguir apuntando al hablante.
         if (bubble.tail != null)
         {
             float limit = Mathf.Max(0f, bubble.body.size.x * 0.5f - 0.3f);
@@ -107,7 +121,8 @@ public class DialogueManager : MonoBehaviour
 
     void Close()
     {
-        current = null;
+        lines = null;
+        anchorGetter = null;
         if (bubble != null) bubble.gameObject.SetActive(false);
     }
 }
