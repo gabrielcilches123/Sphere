@@ -1,3 +1,4 @@
+using PrimeTween;
 using UnityEngine;
 using TMPro;
 
@@ -34,6 +35,14 @@ public class GameManager : MonoBehaviour
     {
         Stars++;
         UpdateUI();
+
+        JuiceSettings s = Juice.S;
+        if (s.collectEnabled && counterText != null)
+        {
+            Tween.StopAll(counterText.transform);
+            counterText.transform.localScale = Vector3.one;
+            Tween.PunchScale(counterText.transform, Vector3.one * s.counterPunch, s.counterPunchDuration);
+        }
     }
 
     /// <summary>Gasta estrellas (crafteo de cohetes). Devuelve false si no alcanzan.</summary>

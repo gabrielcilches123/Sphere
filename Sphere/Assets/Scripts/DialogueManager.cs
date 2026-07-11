@@ -17,6 +17,11 @@ public class DialogueManager : MonoBehaviour
     [Tooltip("Prefab de la burbuja. Vacio = se carga Resources/SpeechBubble.")]
     public GameObject bubblePrefab;
 
+    [Tooltip("Distancia de la burbuja por DELANTE del near plane de la camara. Asi el " +
+             "dialogo siempre renderiza sobre los objetos, sin importar donde este la " +
+             "camara. En ortografica no cambia su tamano en pantalla.")]
+    public float bubbleCameraMargin = 1.5f;
+
     struct Entry
     {
         public string text;
@@ -98,6 +103,7 @@ public class DialogueManager : MonoBehaviour
     void ShowLine()
     {
         bubble.SetText(entries[index].text);
+        bubble.PunchLine();
         PositionBubble();
     }
 
@@ -117,6 +123,7 @@ public class DialogueManager : MonoBehaviour
         Camera cam = Camera.main;
         if (cam == null || !cam.orthographic || bubble.body == null)
         {
+            if (cam != null) anchor.z = BubbleZ(cam);
             bubble.transform.position = anchor;
             return;
         }
@@ -133,7 +140,7 @@ public class DialogueManager : MonoBehaviour
         vp.y = (halfHvp * 2f >= 1f) ? 0.5f : Mathf.Clamp(vp.y, halfHvp + m, 1f - halfHvp - m);
 
         Vector3 world = cam.ViewportToWorldPoint(vp);
-        world.z = anchor.z;
+        world.z = BubbleZ(cam); // delante de los objetos, pero dentro del frustum
         bubble.transform.position = world;
 
         // La colita se desplaza para seguir apuntando al hablante.
@@ -145,6 +152,10 @@ public class DialogueManager : MonoBehaviour
             bubble.tail.localPosition = new Vector3(tailX, tl.y, tl.z);
         }
     }
+
+    /// <summary>Z de la burbuja: un margen por delante del near plane de la camara.</summary>
+    float BubbleZ(Camera cam) =>
+        cam.transform.position.z + cam.nearClipPlane + bubbleCameraMargin;
 
     void EnsureBubble()
     {
@@ -158,6 +169,6 @@ public class DialogueManager : MonoBehaviour
     {
         entries.Clear();
         CurrentNpc = null;
-        if (bubble != null) bubble.gameObject.SetActive(false);
+        if (bubble != null) bubble.HideAnimated();
     }
 }

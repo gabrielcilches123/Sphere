@@ -1,4 +1,5 @@
 using System.Collections;
+using PrimeTween;
 using UnityEngine;
 using TMPro;
 
@@ -21,6 +22,9 @@ public class RocketBuildSite : MonoBehaviour
 
     [Tooltip("Separacion de la etiqueta sobre la PUNTA del cohete actual (o sobre el pad si esta vacio).")]
     public float labelClearance = 0.9f;
+
+    [Tooltip("Z (mundo) de la etiqueta: delante de los objetos para que siempre se lea.")]
+    public float labelDepth = -6.5f;
 
     [Tooltip("Offset de la burbuja sobre el player (para sus comentarios).")]
     public Vector3 playerBubbleOffset = new Vector3(0f, 1.8f, 0f);
@@ -58,7 +62,9 @@ public class RocketBuildSite : MonoBehaviour
         if (label != null)
         {
             float top = CurrentRocketHeight() + labelClearance;
-            label.transform.position = transform.position + transform.up * top + Vector3.back * 0.3f;
+            Vector3 pos = transform.position + transform.up * top;
+            pos.z = labelDepth; // delante de los objetos de la escena
+            label.transform.position = pos;
             label.transform.rotation = Quaternion.identity;
         }
     }
@@ -98,8 +104,9 @@ public class RocketBuildSite : MonoBehaviour
         if (deposited == 0 && amount > 0) { SayAsPlayer(noStarsLine); return; }
 
         Deposited += deposited;
-        UpdateVisual();
+        UpdateVisual(animate: true);
         UpdateLabel();
+        PunchLabel();
 
         if (sabotage && Current.starCost - Deposited <= 1)
         {
@@ -169,8 +176,33 @@ public class RocketBuildSite : MonoBehaviour
     /// <summary>Auto-sabotaje: destruye el cohete actual (las estrellas gastadas se pierden).</summary>
     public void DemolishRocket()
     {
-        ClearRocket();
+        StopRocketShake();
+
+        JuiceSettings s = Juice.S;
+        Transform doomed = rocketRoot;
+
+        // Soltar el estado ya (el sitio queda vacio de inmediato para el gameplay).
+        rocketRoot = null;
+        body = null;
+        Current = null;
+        Deposited = 0;
+        CurrentState = State.Empty;
         UpdateLabel();
+
+        if (doomed == null) return;
+
+        if (s.sabotageEnabled)
+        {
+            // Implosion + sacudida de camara; el objeto muere al terminar.
+            Tween.StopAll(doomed);
+            Juice.ShakeCamera();
+            Tween.Scale(doomed, 0f, s.demolishDuration, s.demolishEase)
+                 .OnComplete(() => Destroy(doomed.gameObject));
+        }
+        else
+        {
+            Destroy(doomed.gameObject);
+        }
     }
 
     /// <summary>Despega el cohete (solo si esta completo) y deja el sitio vacio.</summary>
@@ -221,7 +253,7 @@ public class RocketBuildSite : MonoBehaviour
         return Current.height * Mathf.Lerp(0.15f, 1f, p);
     }
 
-    void UpdateVisual()
+    void UpdateVisual(bool animate = false)
     {
         if (body == null || Current == null) return;
 
@@ -229,8 +261,48 @@ public class RocketBuildSite : MonoBehaviour
         float h = CurrentRocketHeight();
 
         // Capsula primitiva mide 2 unidades de alto a escala 1.
-        body.localScale = new Vector3(Current.height * 0.28f, h * 0.5f, Current.height * 0.28f);
-        body.localPosition = new Vector3(0f, h * 0.5f + 0.15f, 0f);
+        Vector3 targetScale = new Vector3(Current.height * 0.28f, h * 0.5f, Current.height * 0.28f);
+        Vector3 targetPos = new Vector3(0f, h * 0.5f + 0.15f, 0f);
+
+        JuiceSettings s = Juice.S;
+        if (animate && s.depositEnabled)
+        {
+            Tween.StopAll(body);
+            Tween.Scale(body, targetScale, s.rocketGrowDuration, s.rocketGrowEase);
+            Tween.LocalPosition(body, targetPos, s.rocketGrowDuration, s.rocketGrowEase);
+        }
+        else
+        {
+            body.localScale = targetScale;
+            body.localPosition = targetPos;
+        }
+    }
+
+    void PunchLabel()
+    {
+        JuiceSettings s = Juice.S;
+        if (!s.depositEnabled || label == null) return;
+        Tween.StopAll(label.transform);
+        label.transform.localScale = Vector3.one;
+        Tween.PunchScale(label.transform, Vector3.one * s.labelPunch, s.labelPunchDuration);
+    }
+
+    // ---------- Juice del sabotaje (lo dirige StoryDirector) ----------
+
+    Tween shakeTween;
+
+    /// <summary>Empieza el temblor del cohete (la duda del sabotaje).</summary>
+    public void StartRocketShake()
+    {
+        JuiceSettings s = Juice.S;
+        if (!s.sabotageEnabled || rocketRoot == null) return;
+        shakeTween = Tween.ShakeLocalPosition(rocketRoot,
+            Vector3.one * s.sabotageShakeStrength, duration: 60f, frequency: s.sabotageShakeFrequency);
+    }
+
+    public void StopRocketShake()
+    {
+        if (shakeTween.isAlive) shakeTween.Stop();
     }
 
     void UpdateLabel()

@@ -264,6 +264,9 @@ public class StoryDirector : MonoBehaviour
     {
         IsSequenceRunning = true;
         EnsureRefs();
+
+        // El cohete tiembla mientras el player duda.
+        if (site != null) site.StartRocketShake();
         yield return new WaitForSeconds(0.4f);
 
         string[] lines = (activeSabotageLines != null && activeSabotageLines.Length > 0)
@@ -279,8 +282,9 @@ public class StoryDirector : MonoBehaviour
         }
 
         yield return new WaitForSeconds(0.3f);
-        if (site != null) site.DemolishRocket();
+        if (site != null) site.DemolishRocket(); // detiene el temblor e implosiona
 
+        yield return new WaitForSeconds(Juice.S.demolishDuration + 0.2f);
         IsSequenceRunning = false;
     }
 }

@@ -1,3 +1,4 @@
+using PrimeTween;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -23,6 +24,9 @@ public class HoldInteractable : MonoBehaviour
     public Vector3 barOffset = new Vector3(0f, 1.8f, -0.2f);
     public float barWidth = 1.6f;
     public float barHeight = 0.2f;
+
+    [Tooltip("Z (mundo) de la barra: delante de los objetos para que siempre se vea.")]
+    public float barDepth = -6.5f;
 
     public bool IsHolding { get; private set; }
 
@@ -79,15 +83,18 @@ public class HoldInteractable : MonoBehaviour
         // rota, el texto/sprites sufren shear). Sigue al objeto y queda horizontal.
         if (barRoot != null && barRoot.gameObject.activeSelf)
         {
-            barRoot.position = transform.position
+            Vector3 pos = transform.position
                 + transform.up * barOffset.y
-                + new Vector3(barOffset.x, 0f, barOffset.z);
+                + new Vector3(barOffset.x, 0f, 0f);
+            pos.z = barDepth; // delante de los objetos de la escena
+            barRoot.position = pos;
             barRoot.rotation = Quaternion.identity;
         }
     }
 
     void OnDestroy()
     {
+        if (barTween.isAlive) barTween.Stop();
         if (barRoot != null) Destroy(barRoot.gameObject);
     }
 
@@ -128,8 +135,34 @@ public class HoldInteractable : MonoBehaviour
         barFill.localPosition = new Vector3(-barWidth * 0.5f + w * 0.5f, 0f, -0.01f);
     }
 
+    Tween barTween;
+
     void ShowBar(bool visible)
     {
-        if (barRoot != null) barRoot.gameObject.SetActive(visible);
+        if (barRoot == null) return;
+
+        JuiceSettings s = Juice.S;
+        if (barTween.isAlive) barTween.Stop();
+
+        if (visible)
+        {
+            barRoot.gameObject.SetActive(true);
+            if (s.holdBarEnabled)
+            {
+                barRoot.localScale = Vector3.zero;
+                barTween = Tween.Scale(barRoot, 1f, s.barPopDuration, s.barPopEase);
+            }
+            else barRoot.localScale = Vector3.one;
+        }
+        else if (s.holdBarEnabled && barRoot.gameObject.activeSelf)
+        {
+            Transform bar = barRoot;
+            barTween = Tween.Scale(bar, 0f, s.barPopDuration * 0.6f, Ease.InBack)
+                            .OnComplete(() => bar.gameObject.SetActive(false));
+        }
+        else
+        {
+            barRoot.gameObject.SetActive(false);
+        }
     }
 }

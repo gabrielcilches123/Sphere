@@ -204,6 +204,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DialogueManager
   bubblePrefab: {fileID: 0}
+  bubbleCameraMargin: 1.5
 --- !u!114 &39979292
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -36278,7 +36279,7 @@ Camera:
     width: 1
     height: 1
   near clip plane: 0.3
-  far clip plane: 15
+  far clip plane: 20
   field of view: 60
   orthographic: 1
   orthographic size: 3.5
@@ -36344,7 +36345,7 @@ MonoBehaviour:
   starCount: 200
   coverage: 1.15
   minSize: 0.06
-  maxSize: 0.22
+  maxSize: 0.1
   distance: 0
 --- !u!4 &1583437211
 Transform:
@@ -36411,6 +36412,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RocketBuildSite
   starsPerClick: 1
   labelClearance: 0.9
+  labelDepth: -6.5
   playerBubbleOffset: {x: 0, y: 1.8, z: 0}
   emptyLine: Deberia elegir un cohete en el banco primero.
   noStarsLine: No me quedan estrellas...
@@ -36559,6 +36561,7 @@ MonoBehaviour:
   barOffset: {x: 0, y: 1.8, z: -0.2}
   barWidth: 1.6
   barHeight: 0.2
+  barDepth: -6.5
 --- !u!65 &1700231642
 BoxCollider:
   m_ObjectHideFlags: 0

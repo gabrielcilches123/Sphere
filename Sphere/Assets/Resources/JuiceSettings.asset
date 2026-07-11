@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9e119194d7bce464b810543f9a47555e, type: 3}
+  m_Name: JuiceSettings
+  m_EditorClassIdentifier: Assembly-CSharp::JuiceSettings
+  collectEnabled: 1
+  collectPunch: 0.18
+  collectPunchDuration: 0.12
+  collectFlyDuration: 0.45
+  collectFlyEase: 8
+  counterPunch: 0.3
+  counterPunchDuration: 0.2
+  landEnabled: 1
+  landSquash: {x: 0.14, y: -0.18, z: 0}
+  landSquashDuration: 0.22
+  depositEnabled: 1
+  rocketGrowDuration: 0.35
+  rocketGrowEase: 27
+  labelPunch: 0.25
+  labelPunchDuration: 0.15
+  sabotageEnabled: 1
+  sabotageShakeStrength: 0.05
+  sabotageShakeFrequency: 9
+  demolishDuration: 0.35
+  demolishEase: 26
+  cameraShakeStrength: 0.25
+  cameraShakeDuration: 0.35
+  bubbleEnabled: 1
+  bubblePopDuration: 0.22
+  bubblePopEase: 27
+  bubbleLinePunch: 0.06
+  bubbleHideDuration: 0.15
+  holdBarEnabled: 1
+  barPopDuration: 0.2
+  barPopEase: 27

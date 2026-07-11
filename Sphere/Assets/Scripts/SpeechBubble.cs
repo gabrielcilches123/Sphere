@@ -1,3 +1,4 @@
+using PrimeTween;
 using UnityEngine;
 using TMPro;
 
@@ -50,5 +51,51 @@ public class SpeechBubble : MonoBehaviour
     public void PreviewSample()
     {
         SetText("I GUESS I'M BORED!!!");
+    }
+
+    // ---------- Juice (config en Resources/JuiceSettings) ----------
+
+    Tween scaleTween; // pop de apertura / punch / cierre (uno a la vez)
+
+    void OnEnable()
+    {
+        if (!Application.isPlaying) return;
+        JuiceSettings s = Juice.S;
+        if (!s.bubbleEnabled) return;
+
+        // Pop de apertura.
+        if (scaleTween.isAlive) scaleTween.Stop();
+        transform.localScale = Vector3.one * 0.6f;
+        scaleTween = Tween.Scale(transform, 1f, s.bubblePopDuration, s.bubblePopEase);
+    }
+
+    /// <summary>Micro-punch al cambiar de linea (no interrumpe el pop de apertura).</summary>
+    public void PunchLine()
+    {
+        JuiceSettings s = Juice.S;
+        if (!s.bubbleEnabled) return;
+        if (scaleTween.isAlive) return; // el pop de apertura sigue corriendo
+
+        transform.localScale = Vector3.one;
+        scaleTween = Tween.PunchScale(transform, Vector3.one * s.bubbleLinePunch, 0.12f);
+    }
+
+    /// <summary>Encoge la burbuja y la desactiva al terminar.</summary>
+    public void HideAnimated()
+    {
+        JuiceSettings s = Juice.S;
+        if (!s.bubbleEnabled || !gameObject.activeSelf)
+        {
+            gameObject.SetActive(false);
+            return;
+        }
+
+        if (scaleTween.isAlive) scaleTween.Stop();
+        scaleTween = Tween.Scale(transform, 0f, s.bubbleHideDuration, Ease.InBack)
+             .OnComplete(() =>
+             {
+                 gameObject.SetActive(false);
+                 transform.localScale = Vector3.one;
+             });
     }
 }
