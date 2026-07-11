@@ -40,9 +40,10 @@ public class PlanetController : MonoBehaviour
     {
         IsRotating = false; // por defecto no gira este frame
 
-        // Durante una transicion (fade) o cinematica no se gira ni se recoge.
+        // Durante una transicion (fade), cinematica o menu abierto no se gira ni se recoge.
         if (TransitionManager.Instance != null && TransitionManager.Instance.IsRunning) return;
         if (TelescopeCinematic.Instance != null && TelescopeCinematic.Instance.IsPlaying) return;
+        if (CraftingBank.Instance != null && CraftingBank.Instance.IsMenuOpen) return;
 
         Pointer pointer = Pointer.current;
         if (pointer == null) return;
@@ -120,8 +121,13 @@ public class PlanetController : MonoBehaviour
             FallingStar star = hit.collider.GetComponentInParent<FallingStar>();
             if (star != null)
             {
-                star.Collect();
-                return true;
+                // Mecanica decremental: si la recoleccion esta apagada, el click sobre
+                // la estrella se ignora (cae al giro, como si fuera vacio).
+                if (GameManager.Instance == null || GameManager.Instance.CollectionEnabled)
+                {
+                    star.Collect();
+                    return true;
+                }
             }
 
             HoldInteractable hold = hit.collider.GetComponentInParent<HoldInteractable>();

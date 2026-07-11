@@ -32,7 +32,7 @@ public class Telescope : MonoBehaviour
 
     public void Look()
     {
-        DayManager.DayConfig cfg = DayManager.Instance != null
+        DayConfigSO cfg = DayManager.Instance != null
             ? DayManager.Instance.GetConfig(DayManager.Instance.CurrentDay)
             : null;
         bool eventDay = cfg != null && cfg.telescopeEvent;

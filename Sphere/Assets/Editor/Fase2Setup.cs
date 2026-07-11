@@ -53,15 +53,8 @@ public static class Fase2Setup
             Debug.Log("[Fase2] Telescopio creado y colgado del planeta.");
         }
 
-        // 3. Dias de evento de telescopio: dia 5 (GDD) + dia 2 (para probar rapido).
-        DayManager dm = gs.GetComponent<DayManager>();
-        if (dm != null)
-        {
-            // Cada dia de evento con SU cinematica (mensaje propio, GDD 7.3).
-            EnsureTelescopeDay(dm, 2, "Ves a tu amigo surcando la galaxia en su cohete..."); // test rapido
-            EnsureTelescopeDay(dm, 5, "Tu amigo aterriza en un planeta lejano. Se ve feliz."); // GDD dia 5
-            EditorUtility.SetDirty(dm);
-        }
+        // 3. Los dias de evento ahora se configuran como assets DayConfigSO
+        //    (los crea Fase 4 Setup, o a mano: Create > Sphere > Day Config).
 
         var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
         UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(scene);
@@ -69,24 +62,5 @@ public static class Fase2Setup
         Debug.Log("[Fase2] Setup completo y escena guardada.");
     }
 
-    static void EnsureTelescopeDay(DayManager dm, int day, string message)
-    {
-        DayManager.DayConfig cfg = dm.dayConfigs.Find(c => c.day == day);
-        if (cfg == null)
-        {
-            cfg = new DayManager.DayConfig { day = day, starsOverride = -1 };
-            dm.dayConfigs.Add(cfg);
-        }
-        if (!cfg.telescopeEvent)
-        {
-            cfg.telescopeEvent = true;
-            Debug.Log($"[Fase2] Dia {day} marcado como evento de telescopio.");
-        }
-        if (string.IsNullOrEmpty(cfg.telescopeMessage))
-        {
-            cfg.telescopeMessage = message;
-            Debug.Log($"[Fase2] Dia {day}: mensaje de cinematica configurado.");
-        }
-    }
 }
 #endif

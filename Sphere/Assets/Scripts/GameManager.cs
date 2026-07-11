@@ -16,6 +16,12 @@ public class GameManager : MonoBehaviour
     /// <summary>Estrellas acumuladas (recurso).</summary>
     public int Stars { get; private set; }
 
+    /// <summary>
+    /// Mecanica decremental (GDD 7.4): cuando es false, el click sobre estrellas no
+    /// hace nada y se acumulan en el planeta. La controla el StoryDirector por dia.
+    /// </summary>
+    public bool CollectionEnabled { get; set; } = true;
+
     void Awake()
     {
         Instance = this;

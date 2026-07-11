@@ -75,9 +75,20 @@ public class HoldInteractable : MonoBehaviour
 
     void LateUpdate()
     {
-        // La barra siempre horizontal aunque el objeto gire con el planeta.
+        // La barra es un objeto RAIZ (colgada de un padre con escala no uniforme que
+        // rota, el texto/sprites sufren shear). Sigue al objeto y queda horizontal.
         if (barRoot != null && barRoot.gameObject.activeSelf)
+        {
+            barRoot.position = transform.position
+                + transform.up * barOffset.y
+                + new Vector3(barOffset.x, 0f, barOffset.z);
             barRoot.rotation = Quaternion.identity;
+        }
+    }
+
+    void OnDestroy()
+    {
+        if (barRoot != null) Destroy(barRoot.gameObject);
     }
 
     // ---------- Barra placeholder ----------
@@ -90,16 +101,8 @@ public class HoldInteractable : MonoBehaviour
             new Vector2(0.5f, 0.5f),
             Texture2D.whiteTexture.width); // sprite de 1x1 unidad
 
-        barRoot = new GameObject("HoldBar").transform;
-        barRoot.SetParent(transform, false);
-        barRoot.localPosition = barOffset;
-
-        // Compensar la escala del objeto (y sus padres) para que la barra no se deforme.
-        Vector3 lossy = transform.lossyScale;
-        barRoot.localScale = new Vector3(
-            lossy.x != 0f ? 1f / lossy.x : 1f,
-            lossy.y != 0f ? 1f / lossy.y : 1f,
-            lossy.z != 0f ? 1f / lossy.z : 1f);
+        // Objeto RAIZ (sin padre): posicion y rotacion se manejan en LateUpdate.
+        barRoot = new GameObject("HoldBar_" + name).transform;
 
         SpriteRenderer bg = new GameObject("BG").AddComponent<SpriteRenderer>();
         bg.transform.SetParent(barRoot, false);
