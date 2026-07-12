@@ -1,11 +1,15 @@
 using PrimeTween;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.UI;
 
 /// <summary>
 /// Interaccion generica de "mantener click sobre el objeto" (GDD 5.7). Al mantener
-/// holdSeconds sobre el collider se dispara onComplete. Muestra una barra de progreso
-/// placeholder (autoconstruida con sprites blancos, sin assets).
+/// holdSeconds sobre el collider se dispara onComplete.
+///
+/// La barra de progreso vive EN LA ESCENA (canvas world-space) y se asigna por
+/// inspector: el codigo solo la muestra/oculta y anima el fillAmount del Image.
+/// El arte, proporciones y posicion se editan directamente en la escena.
 ///
 /// El ciclo lo maneja PlanetController: BeginHold() al presionar sobre el objeto,
 /// TickHold() cada frame mientras se mantiene, CancelHold() al soltar o salirse.
@@ -19,25 +23,37 @@ public class HoldInteractable : MonoBehaviour
     [Tooltip("Accion al completar el hold (ej: dormir).")]
     public UnityEvent onComplete;
 
-    [Header("Barra de progreso (placeholder)")]
-    [Tooltip("Offset local de la barra respecto al objeto.")]
-    public Vector3 barOffset = new Vector3(0f, 1.8f, -0.2f);
-    public float barWidth = 1.6f;
-    public float barHeight = 0.2f;
+    [Header("Barra de progreso (objetos de la escena)")]
+    [Tooltip("Raiz de la barra en la escena (se activa/desactiva). Vacio = sin barra.")]
+    public Transform barRoot;
 
-    [Tooltip("Z (mundo) de la barra: delante de los objetos para que siempre se vea.")]
+    [Tooltip("Image del relleno (tipo Filled): el progreso anima su Fill Amount.")]
+    public Image barFill;
+
+    [Header("Seguimiento (opcional)")]
+    [Tooltip("Si esta activo, la barra se recoloca cada frame sobre este objeto y se " +
+             "mantiene horizontal. Apagado = la barra se queda donde la pusiste en la escena.")]
+    public bool followTarget = false;
+
+    [Tooltip("Solo con Follow Target: offset respecto al objeto.")]
+    public Vector3 barOffset = new Vector3(0f, 1.8f, 0f);
+
+    [Tooltip("Solo con Follow Target: Z (mundo) de la barra.")]
     public float barDepth = -6.5f;
 
     public bool IsHolding { get; private set; }
 
     float progress;
-    Transform barRoot;
-    Transform barFill;
+    Vector3 barRootScale = Vector3.one; // escala "natural" de la barra en la escena
+    Tween barTween;
 
     void Awake()
     {
-        BuildBar();
-        ShowBar(false);
+        if (barRoot != null)
+        {
+            barRootScale = barRoot.localScale;
+            barRoot.gameObject.SetActive(false); // oculta instantanea desde el frame 0
+        }
     }
 
     /// <summary>Empieza el hold (llamado por PlanetController al presionar sobre este objeto).</summary>
@@ -45,8 +61,8 @@ public class HoldInteractable : MonoBehaviour
     {
         IsHolding = true;
         progress = 0f;
-        ShowBar(true);
         UpdateBar();
+        ShowBar(true);
     }
 
     /// <summary>
@@ -79,63 +95,23 @@ public class HoldInteractable : MonoBehaviour
 
     void LateUpdate()
     {
-        // La barra es un objeto RAIZ (colgada de un padre con escala no uniforme que
-        // rota, el texto/sprites sufren shear). Sigue al objeto y queda horizontal.
+        if (!followTarget) return;
         if (barRoot != null && barRoot.gameObject.activeSelf)
         {
             Vector3 pos = transform.position
                 + transform.up * barOffset.y
                 + new Vector3(barOffset.x, 0f, 0f);
-            pos.z = barDepth; // delante de los objetos de la escena
+            pos.z = barDepth;
             barRoot.position = pos;
             barRoot.rotation = Quaternion.identity;
         }
     }
 
-    void OnDestroy()
-    {
-        if (barTween.isAlive) barTween.Stop();
-        if (barRoot != null) Destroy(barRoot.gameObject);
-    }
-
-    // ---------- Barra placeholder ----------
-
-    void BuildBar()
-    {
-        Sprite white = Sprite.Create(
-            Texture2D.whiteTexture,
-            new Rect(0, 0, Texture2D.whiteTexture.width, Texture2D.whiteTexture.height),
-            new Vector2(0.5f, 0.5f),
-            Texture2D.whiteTexture.width); // sprite de 1x1 unidad
-
-        // Objeto RAIZ (sin padre): posicion y rotacion se manejan en LateUpdate.
-        barRoot = new GameObject("HoldBar_" + name).transform;
-
-        SpriteRenderer bg = new GameObject("BG").AddComponent<SpriteRenderer>();
-        bg.transform.SetParent(barRoot, false);
-        bg.sprite = white;
-        bg.color = new Color(0f, 0f, 0f, 0.6f);
-        bg.transform.localScale = new Vector3(barWidth, barHeight, 1f);
-        bg.sortingOrder = 30;
-
-        barFill = new GameObject("Fill").transform;
-        barFill.SetParent(barRoot, false);
-        SpriteRenderer fill = barFill.gameObject.AddComponent<SpriteRenderer>();
-        fill.sprite = white;
-        fill.color = new Color(1f, 0.9f, 0.3f, 1f);
-        fill.sortingOrder = 31;
-    }
-
     void UpdateBar()
     {
         if (barFill == null) return;
-        float p = Mathf.Clamp01(progress / Mathf.Max(0.01f, holdSeconds));
-        float w = barWidth * p;
-        barFill.localScale = new Vector3(w, barHeight * 0.7f, 1f);
-        barFill.localPosition = new Vector3(-barWidth * 0.5f + w * 0.5f, 0f, -0.01f);
+        barFill.fillAmount = Mathf.Clamp01(progress / Mathf.Max(0.01f, holdSeconds));
     }
-
-    Tween barTween;
 
     void ShowBar(bool visible)
     {
@@ -150,19 +126,30 @@ public class HoldInteractable : MonoBehaviour
             if (s.holdBarEnabled)
             {
                 barRoot.localScale = Vector3.zero;
-                barTween = Tween.Scale(barRoot, 1f, s.barPopDuration, s.barPopEase);
+                barTween = Tween.Scale(barRoot, barRootScale, s.barPopDuration, s.barPopEase);
             }
-            else barRoot.localScale = Vector3.one;
+            else barRoot.localScale = barRootScale;
         }
         else if (s.holdBarEnabled && barRoot.gameObject.activeSelf)
         {
             Transform bar = barRoot;
-            barTween = Tween.Scale(bar, 0f, s.barPopDuration * 0.6f, Ease.InBack)
-                            .OnComplete(() => bar.gameObject.SetActive(false));
+            Vector3 natural = barRootScale;
+            barTween = Tween.Scale(bar, Vector3.zero, s.barPopDuration * 0.6f, Ease.InBack)
+                            .OnComplete(() =>
+                            {
+                                bar.gameObject.SetActive(false);
+                                bar.localScale = natural;
+                            });
         }
         else
         {
             barRoot.gameObject.SetActive(false);
+            barRoot.localScale = barRootScale;
         }
+    }
+
+    void OnDestroy()
+    {
+        if (barTween.isAlive) barTween.Stop();
     }
 }
