@@ -14,6 +14,9 @@ public class RocketData
     [Tooltip("Estrellas necesarias para completarlo.")]
     public int starCost = 10;
 
+    [Tooltip("Icono del cohete en el panfleto (opcional; vacio = placeholder).")]
+    public Sprite icon;
+
     [Tooltip("Color placeholder del cohete.")]
     public Color color = new Color(0.7f, 0.7f, 0.75f);
 

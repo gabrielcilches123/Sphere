@@ -37,9 +37,13 @@ public class RocketBuildSite : MonoBehaviour
     public RocketData Current { get; private set; }
     public int Deposited { get; private set; }
 
+    [Header("UI (objetos de la escena)")]
+    [Tooltip("Texto TMP 3D de progreso 'n/costo *' (objeto de la escena; el codigo solo " +
+             "actualiza su texto y lo recoloca sobre la punta del cohete).")]
+    public TextMeshPro label;
+
     Transform rocketRoot;   // raiz del cohete en obra (se destruye al demoler)
     Transform body;         // cuerpo placeholder que crece
-    TextMeshPro label;      // progreso "n/costo *"
     Transform player;       // para las burbujas de comentario (habla el pinguino)
 
     void Awake() { Instance = this; }
@@ -47,7 +51,6 @@ public class RocketBuildSite : MonoBehaviour
     void Start()
     {
         GetComponent<ClickInteractable>().onClick.AddListener(OnClicked);
-        BuildLabel();
         UpdateLabel();
 
         GameObject p = GameObject.FindWithTag("Player");
@@ -71,7 +74,7 @@ public class RocketBuildSite : MonoBehaviour
 
     void OnDestroy()
     {
-        if (label != null) Destroy(label.gameObject);
+        // La etiqueta es un objeto de la escena: no se destruye desde aqui.
         if (rocketRoot != null) Destroy(rocketRoot.gameObject);
     }
 
@@ -316,15 +319,4 @@ public class RocketBuildSite : MonoBehaviour
         }
     }
 
-    void BuildLabel()
-    {
-        // Objeto RAIZ (sin padre): evita el shear de la escala no uniforme del pad.
-        GameObject go = new GameObject("RocketProgressLabel");
-
-        label = go.AddComponent<TextMeshPro>();
-        label.fontSize = 5f;
-        label.alignment = TextAlignmentOptions.Center;
-        label.color = Color.white;
-        label.rectTransform.sizeDelta = new Vector2(4f, 1f);
-    }
 }
