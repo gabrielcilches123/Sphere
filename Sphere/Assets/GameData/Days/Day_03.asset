@@ -14,9 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DayConfigSO
   day: 3
   starsOverride: -1
-  telescopeEvent: 0
-  telescopeMessage: 
-  telescopeDuration: -1
+  telescopeEvent: 1
+  telescopeCinematic: {fileID: 11400000, guid: 120b92be417b8e249a43a922e6b9bc3e, type: 2}
   wakeUpLines:
   - Ese cohete era pura chatarra de todos modos.
   - Yo puedo construir uno mejor. Mucho mejor.

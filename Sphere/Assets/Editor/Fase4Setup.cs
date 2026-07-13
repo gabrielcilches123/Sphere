@@ -85,15 +85,21 @@ public static class Fase4Setup
 
         Cfg(dm, 4).wakeUpLines = new[] { "Hoy elijo MI cohete en el banco." };
 
+        // Dias con evento de telescopio. La cinematica concreta (asset CinematicSO)
+        // se arrastra en el Day Config; si esta vacia se usa la default del reproductor.
         var d5 = Cfg(dm, 5);
         d5.telescopeEvent = true;
-        if (string.IsNullOrEmpty(d5.telescopeMessage))
-            d5.telescopeMessage = "Tu amigo aterriza en un planeta lejano. Se ve feliz.";
 
         var d8 = Cfg(dm, 8);
         d8.telescopeEvent = true;
-        if (string.IsNullOrEmpty(d8.telescopeMessage))
-            d8.telescopeMessage = "Tu amigo salta entre asteroides. Parece divertirse mucho.";
+
+        var viajeCinematic = AssetDatabase.LoadAssetAtPath<CinematicSO>(
+            "Assets/GameData/Cinematics/Cinematic_Viaje.asset");
+        if (viajeCinematic != null)
+        {
+            if (d5.telescopeCinematic == null) d5.telescopeCinematic = viajeCinematic;
+            if (d8.telescopeCinematic == null) d8.telescopeCinematic = viajeCinematic;
+        }
 
         var d10 = Cfg(dm, 10);
         d10.sabotageRocket = true; // desde hoy, al faltar 1 estrella: sabotaje

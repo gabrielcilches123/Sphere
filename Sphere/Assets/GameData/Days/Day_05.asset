@@ -15,8 +15,7 @@ MonoBehaviour:
   day: 5
   starsOverride: -1
   telescopeEvent: 1
-  telescopeMessage: Tu amigo aterriza en un planeta lejano. Se ve feliz.
-  telescopeDuration: -1
+  telescopeCinematic: {fileID: 11400000, guid: 3a6ad6e8f18e14543ad33f9438f760a4, type: 2}
   wakeUpLines: []
   dialogueLines: []
   dialogueLinesRocketComplete: []

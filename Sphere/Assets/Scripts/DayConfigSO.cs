@@ -19,12 +19,10 @@ public class DayConfigSO : ScriptableObject
     [Tooltip("Si este dia tiene evento de telescopio (cinematica al mirar).")]
     public bool telescopeEvent = false;
 
-    [TextArea]
-    [Tooltip("Texto de la cinematica de ESTE dia. Vacio = mensaje por defecto.")]
-    public string telescopeMessage = "";
-
-    [Tooltip("Duracion de la cinematica en segundos. -1 = duracion por defecto.")]
-    public float telescopeDuration = -1f;
+    [Tooltip("Cinematica a reproducir este dia (arrastra su asset CinematicSO). " +
+             "Vacio = la cinematica por defecto del reproductor. El mensaje y la " +
+             "duracion los define la propia cinematica.")]
+    public CinematicSO telescopeCinematic;
 
     [Header("Guion del dia (StoryDirector)")]
     [TextArea]

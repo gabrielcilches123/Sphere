@@ -15,8 +15,7 @@ MonoBehaviour:
   day: 13
   starsOverride: -1
   telescopeEvent: 0
-  telescopeMessage: 
-  telescopeDuration: -1
+  telescopeCinematic: {fileID: 0}
   wakeUpLines:
   - Las estrellas se acumulan ahi fuera. Ya no importa.
   dialogueLines: []

@@ -39,8 +39,8 @@ public class Telescope : MonoBehaviour
 
         if (eventDay && TelescopeCinematic.Instance != null)
         {
-            // Cada dia trae su propio mensaje/duracion (modular desde el inspector).
-            TelescopeCinematic.Instance.Play(cfg.telescopeMessage, cfg.telescopeDuration);
+            // El dia entrega directamente SU cinematica (asset arrastrado en el Day Config).
+            TelescopeCinematic.Instance.Play(cfg.telescopeCinematic);
         }
         else if (player != null && DialogueManager.Instance != null)
         {

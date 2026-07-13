@@ -15,8 +15,7 @@ MonoBehaviour:
   day: 4
   starsOverride: -1
   telescopeEvent: 0
-  telescopeMessage: 
-  telescopeDuration: -1
+  telescopeCinematic: {fileID: 0}
   wakeUpLines:
   - Hoy elijo MI cohete en el banco.
   dialogueLines: []

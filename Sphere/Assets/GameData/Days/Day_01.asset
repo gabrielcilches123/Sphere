@@ -15,8 +15,7 @@ MonoBehaviour:
   day: 1
   starsOverride: 12
   telescopeEvent: 0
-  telescopeMessage: 
-  telescopeDuration: -1
+  telescopeCinematic: {fileID: 0}
   wakeUpLines: []
   dialogueLines:
   - speaker: 0

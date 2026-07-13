@@ -15,8 +15,7 @@ MonoBehaviour:
   day: 11
   starsOverride: -1
   telescopeEvent: 0
-  telescopeMessage: 
-  telescopeDuration: -1
+  telescopeCinematic: {fileID: 0}
   wakeUpLines:
   - El plan no esta yendo bien...
   dialogueLines: []
