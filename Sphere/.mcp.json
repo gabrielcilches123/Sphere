@@ -1,10 +1,13 @@
 {
   "mcpServers": {
     "UnityMCP": {
-      "command": "C:/Users/G/Sphere/Sphere/Assets/StreamingAssets/realvirtual-MCP/python/python.exe",
+      "command": "C:/Users/gabri/Proyectos_Unity/Sphere/Sphere/Assets/StreamingAssets/realvirtual-MCP/python/python.exe",
       "args": [
-        "C:/Users/G/Sphere/Sphere/Assets/StreamingAssets/realvirtual-MCP/unity_mcp_server.py"
-      ]
+        "C:/Users/gabri/Proyectos_Unity/Sphere/Sphere/Assets/StreamingAssets/realvirtual-MCP/unity_mcp_server.py"
+      ],
+      "env": {
+        "PYTHONPATH": "C:/Users/gabri/Proyectos_Unity/Sphere/Sphere/Assets/StreamingAssets/realvirtual-MCP/Lib"
+      }
     }
   }
 }
